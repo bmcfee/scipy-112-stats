@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: True
+
+jobs:
+    test:
+        name: "Python ${{ matrix.python-version }} on ${{ matrix.os }}"
+        runs-on: ${{ matrix.os }}
+
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - os: macos-latest
+                      python-version: "3.11"
+                      channel-priority: "strict"
+                      envfile: ".github/environment-ci-old.yml"
+
+                    - os: ubuntu-latest
+                      python-version: "3.12"
+                      channel-priority: "strict"
+                      envfile: ".github/environment-ci.yml"
+
+                    - os: macos-latest
+                      python-version: "3.12"
+                      channel-priority: "strict"
+                      envfile: ".github/environment-ci.yml"
+
+                    - os: windows-latest
+                      python-version: "3.12"
+                      channel-priority: "strict"
+                      envfile: ".github/environment-ci.yml"
+
+        steps:
+        - uses: actions/checkout@v3
+          with:
+            submodules: true
+
+        - name: Install Conda environment
+          uses: conda-incubator/setup-miniconda@v2
+          with:
+            auto-update-conda: true
+            python-version: ${{ matrix.python-version }}
+            add-pip-as-python-dependency: true
+            auto-activate-base: false
+            activate-environment: test
+            channel-priority: ${{ matrix.channel-priority }}
+            environment-file: ${{ matrix.envfile }}
+            use-only-tar-bz2: false # IMPORTANT: This needs to be set for caching to work properly!
+
+        - name: Conda info
+          shell: bash -l {0}
+          run: |
+            conda info -a
+            conda list
+            python -c "import scipy; scipy.show_config()"
+
+        - name: Run pytest
+          shell: bash -l {0}
+          run: pytest
