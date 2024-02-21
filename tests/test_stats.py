@@ -12,4 +12,4 @@ def test_stats_beta():
 
     outs = scipy.stats.beta.cdf(thresholds, beta_parameters[0], beta_parameters[1])
 
-    assert np.allclose(outs, beta_cdf)
+    assert np.allclose(outs, beta_cdf, atol=1e-10)
